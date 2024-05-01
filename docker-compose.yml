@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  source_postgres:
+    image: postgres:15.6
+    container_name: source_postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - elt_network
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: source_db
+    volumes:
+      - ./source_db_init/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  target_postgres:
+    image: postgres:15.6
+    container_name: target_postgres
+    ports:
+      - "5433:5432"
+    networks:
+      - elt_network
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: target_db
+
+  elt_script:
+    build:
+      context: ./elt
+      dockerfile: Dockerfile
+    command: ["python", "elt_script.py"]
+    networks:
+      - elt_network
+    depends_on:
+      - source_postgres
+      - target_postgres
+
+networks:
+  elt_network:
+    driver: bridge
